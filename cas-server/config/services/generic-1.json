@@ -1,0 +1,6 @@
+{
+  "@class" : "org.apereo.cas.services.RegexRegisteredService",
+  "serviceId" : "^(https|http)://.*",
+  "name" : "CAS Server for React CAS Example",
+  "id" : 1
+}

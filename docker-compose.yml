@@ -1,0 +1,30 @@
+version: "3.5"
+
+services:
+  cas-web-client:
+    container_name: cas-web-client
+    build:
+      context: ./cas-web-client
+    volumes:
+      - ./cas-web-client/application:/cas-web-client
+      - /cas-web-client/node_modules
+    ports:
+      - 15300:3000
+    networks:
+      - cas-example
+  cas-server:
+    container_name: cas-server
+    build:
+      context: ./cas-server
+    volumes:
+      - ./cas-server/config/cas.properties:/etc/cas/config/cas.properties
+      - ./cas-server/config/services:/etc/cas/config/services
+    ports:
+      - 15080:8080
+      - 15443:8443
+    networks:
+      - cas-example
+networks:
+  cas-example:
+    name: cas-example
+    driver: bridge
