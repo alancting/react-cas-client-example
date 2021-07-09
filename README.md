@@ -16,3 +16,7 @@ $ docker-compose up
 4. Open browser, go to http://127.0.0.1:15300, and login with follows account
     - Username: casuser
     - Password: Mellon
+
+# License
+
+MIT license
