@@ -3,9 +3,8 @@ import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import { Button, Box, Text, Paragraph, Spinner, Heading } from "grommet";
 import { Login, Logout } from "grommet-icons";
 import { useHistory } from "react-router-dom";
-
-import { CasUserContext } from "./context/casUserContext";
 import useCas from "./useCas";
+import { CasUserContext } from "./context/casUserContext";
 
 export default function App() {
   return (
@@ -36,7 +35,7 @@ function Layout(props) {
     } else {
       setSecurityChecked(true);
     }
-  }, [props.isSecure, casUserContext.user]);
+  }, [props.isSecure, casUserContext]);
 
   if (!securityChecked) return <Box></Box>;
 
@@ -57,7 +56,7 @@ function Layout(props) {
         }}
         size="small"
       >
-        (Web Flow)
+        (Proxy Web Flow)
       </Heading>
       <Box justify="center" align="center">
         {props.children}
@@ -68,14 +67,15 @@ function Layout(props) {
 
 function Home() {
   const history = useHistory();
-  const cas = useCas(true);
+
   const casUserContext = useContext(CasUserContext);
+  const cas = useCas(true);
 
   useEffect(() => {
     if (casUserContext.user) {
       history.replace("/home");
     }
-  }, [casUserContext.user]);
+  }, [casUserContext]);
 
   return (
     <Layout background="status-unknown" isSecure={false}>
@@ -132,8 +132,88 @@ function Home() {
 }
 
 function SecureHome() {
-  const cas = useCas();
   const casUserContext = useContext(CasUserContext);
+  const [apiPt, setApiPt] = useState("");
+  const [fetchingApiPt, setFetchingApiPt] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [grantingApiAccess, setGrantingApiAccess] = useState(false);
+  const [apiAccessGranted, setApiAccessGranted] = useState(false);
+  const cas = useCas();
+
+  useEffect(() => {
+    setMounted(true);
+    return function cleanup() {
+      setMounted(false);
+    };
+  });
+
+  useEffect(() => {
+    if (mounted && casUserContext.pgtIou && !apiPt && !fetchingApiPt) {
+      getProxyTicketForApi();
+    }
+  }, [casUserContext, mounted]);
+
+  useEffect(() => {
+    if (mounted && apiPt && !grantingApiAccess) {
+      grantApiAccess();
+    }
+  }, [mounted, apiPt]);
+
+  function getProxyTicketForApi() {
+    setFetchingApiPt(true);
+    fetch(
+      process.env.REACT_APP_PROXY_AUTH_ENDPOINT +
+        "/cas/pt?pgtiou=" +
+        casUserContext.pgtIou +
+        "&service=" +
+        encodeURIComponent(process.env.REACT_APP_API_ENDPOINT)
+    )
+      .then((response) => {
+        response
+          .json()
+          .then((result) => {
+            if (result.pt) {
+              setApiPt(result.pt);
+            }
+            setFetchingApiPt(false);
+          })
+          .catch((error) => {
+            console.error(error);
+            setFetchingApiPt(false);
+          });
+      })
+      .catch((error) => {
+        console.error(error);
+        setFetchingApiPt(false);
+      });
+  }
+
+  function grantApiAccess() {
+    setGrantingApiAccess(true);
+    fetch(process.env.REACT_APP_API_ENDPOINT + "/api/grant_access", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pt: apiPt }),
+    })
+      .then((response) => {
+        response
+          .json()
+          .then((result) => {
+            if (result.status) {
+              setApiAccessGranted(true);
+            }
+            setGrantingApiAccess(false);
+          })
+          .catch((error) => {
+            console.error(error);
+            setGrantingApiAccess(false);
+          });
+      })
+      .catch((error) => {
+        console.error(error);
+        setGrantingApiAccess(false);
+      });
+  }
 
   return (
     <Layout background="status-ok" isSecure={true}>
@@ -145,6 +225,35 @@ function SecureHome() {
           </Text>
         </Paragraph>
       </Box>
+      {apiAccessGranted && (
+        <Button
+          primary
+          label="Get ME From Api"
+          a11yTitle="Get ME From Api"
+          margin={{ bottom: "medium" }}
+          onClick={() => {
+            fetch(process.env.REACT_APP_API_ENDPOINT + "/api/me", {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Token " + apiPt,
+              },
+            })
+              .then((response) => {
+                response
+                  .text()
+                  .then((result) => {
+                    alert(result);
+                  })
+                  .catch((error) => {
+                    console.error(error);
+                  });
+              })
+              .catch((error) => {
+                console.error(error);
+              });
+          }}
+        />
+      )}
       <Button
         label="Logout"
         icon={<Logout />}

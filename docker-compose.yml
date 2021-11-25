@@ -5,11 +5,48 @@ services:
     container_name: cas-web-client
     build:
       context: ./cas-web-client
-    volumes:
-      - ./cas-web-client/application:/cas-web-client
-      - /cas-web-client/node_modules
+    # volumes:
+    #   - ./cas-web-client/application:/cas-web-client
+    #   - /cas-web-client/node_modules
     ports:
       - 15300:3000
+    networks:
+      - cas-example
+  cas-web-client-proxy-auth:
+    container_name: cas-web-client-proxy-auth
+    build:
+      context: ./cas-web-client-proxy-auth
+    # volumes:
+    #   - ./cas-web-client-proxy-auth/application:/cas-web-client-proxy-auth
+    #   - /cas-web-client-proxy-auth/node_modules
+    ports:
+      - 15301:3000
+    networks:
+      - cas-example
+  cas-proxy-app:
+    container_name: cas-proxy-app
+    build:
+      context: ./cas-proxy-app
+    command: >
+        bash -c "python manage.py migrate
+        && python manage.py runserver 0.0.0.0:3000"
+    # volumes:
+    #   - ./cas-proxy-app/application:/application
+    ports:
+      - 15302:3000
+    networks:
+      - cas-example
+  cas-api:
+    container_name: cas-api
+    build:
+      context: ./cas-api
+    command: >
+        bash -c "python manage.py migrate
+        && python manage.py runserver 0.0.0.0:3000"
+    # volumes:
+    #   - ./cas-api/application:/application
+    ports:
+      - 15303:3000
     networks:
       - cas-example
   cas-server:
@@ -21,7 +58,7 @@ services:
       - ./cas-server/config/services:/etc/cas/config/services
     ports:
       - 15080:8080
-      - 15443:8443
+      - 443:8443
     networks:
       - cas-example
 networks:
