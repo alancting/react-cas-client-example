@@ -46,3 +46,9 @@ $ docker-compose up
 # License
 
 MIT license
+
+### Infrastructure model
+![Infrastructure main model](.infragenie/infrastructure_main_model.svg)
+- [cas-proxy-app component model](.infragenie/cas-proxy-app_component_model.svg)
+
+---
